@@ -1,0 +1,6 @@
+aiogram
+asyncio
+json
+requests
+re
+time
