@@ -48,18 +48,26 @@ def update(loop):
         file_user_products.close()
 
 
-        for item in products.keys():
+        for item in products.keys(): # item - api ссылка в продуктах (ключ)
             try:
                 new_price = get_price(item, products[item][2])[0]
+#-----------------Проверям если цена измнилась, то отправляем сообщение-------------------------------------------------
+
                 if float(products[item][0]) != float(new_price):
-                    for j in user_products.keys():
-                        if item in user_products[j]:
+                    for j in user_products.keys():          # j - id пользователя (Ключ в user_products)
+                        if item in user_products[j]:        # user_products[j] - список товаров пользователя
                            asyncio.ensure_future(bot.send_message(j, f'Цена на товар <b>{products[item][1]}\n{products[item][2]} изменилась </b>'
                                                                      f'с <b>{float(products[item][0])}</b> на <b>{float(new_price)}</b>',reply_markup=user_kb.user_kb , parse_mode='html' ))
-                           if item in invalid_products:
-                               asyncio.ensure_future(bot.send_message(j, f'Этот товар снова в наличии ⬆️'))
-                               invalid_products.remove(item)
 
+#-----------------------------------------------------------------------------------------------------------------------
+#-----------------Проверям наличие товара в списке недоступных, если там - удаляем и отправляем сообщение о доступности
+
+                for j in user_products.keys():
+                    if item in invalid_products and item in user_products[j]:
+                        asyncio.ensure_future(bot.send_message(j, f'<b>{products[item][1]}</b>\n{products[item][2]}\nснова в наличии ⬆️', parse_mode='html'))
+                        invalid_products.remove(item)
+
+#-----------------------------------------------------------------------------------------------------------------------
                 products[item][0] = new_price
                 print(f'{products[item][1]} проверил')
                 time.sleep(2)
