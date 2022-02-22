@@ -25,4 +25,4 @@ users.register_handlers_users(dispatcher)
 loop = asyncio.get_event_loop()
 loop.call_later(1, update, loop)
 
-executor.start_polling(dispatcher, skip_updates=True)
+executor.start_polling(dispatcher, skip_updates=True, on_startup=on_startup)
