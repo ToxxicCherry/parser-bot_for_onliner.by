@@ -46,7 +46,7 @@ async def start_del(message: types.Message):
         await message.answer(answer)
     else:
         await Deleter.item.set()
-        await message.answer(main.get_info_for_user(answer), parse_mode='html')
+        await message.answer(answer, parse_mode='html')
         await message.answer('Введи номер', reply_markup=user_kb.cancel_kb)
 
 #Ловим ответ
