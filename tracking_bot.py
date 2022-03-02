@@ -1,4 +1,6 @@
-import asyncio,json
+import asyncio, sqlite3
+
+
 from aiogram import executor
 from create_bot import bot, dispatcher
 from keyboards import user_kb
@@ -9,12 +11,13 @@ from scripts.update import update
 
 
 async def on_startup(_):
-    file = open('DB/users_id.json', 'r')
-    users = json.load(file)
-    file.close()
-    for id in users:
-         await bot.send_message(id, 'Я перезапустился', reply_markup=user_kb.user_kb)
-         await bot.send_sticker(id,r'CAACAgIAAxkBAAED9WViDlkoWl8yl0RR9zIrq-XNXkVMeQACHAADD27HLxMGmvf9kXwrIwQ')
+    with sqlite3.connect('DB/ParserBot.db') as con:
+        cur = con.cursor()
+
+        users_id = cur.execute("""SELECT * FROM users""").fetchall()
+
+        for id in users_id:
+            await bot.send_message(id[0], 'Я перезапустился', reply_markup=user_kb.user_kb)
 
 
 

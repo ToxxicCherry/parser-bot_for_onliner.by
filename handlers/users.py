@@ -41,9 +41,13 @@ class Deleter(StatesGroup):
 
 #Жмет на кнопку удалить и попадаем сюда
 async def start_del(message: types.Message):
-    await Deleter.item.set()
-    await message.answer(main.get_info_for_user(message.from_user.id), parse_mode='html')
-    await message.answer('Введи номер', reply_markup=user_kb.cancel_kb)
+    answer = main.get_info_for_user(message.from_user.id)
+    if answer == 'Твой список пуст':
+        await message.answer(answer)
+    else:
+        await Deleter.item.set()
+        await message.answer(main.get_info_for_user(answer), parse_mode='html')
+        await message.answer('Введи номер', reply_markup=user_kb.cancel_kb)
 
 #Ловим ответ
 async def finish_del(message: types.Message, state: FSMContext):
@@ -88,7 +92,7 @@ async def finish_add(message: types.Message, state: FSMContext):
 
     async with state.proxy() as data:
         try:
-            await main.set_json(data['item_need_to_add'], message.from_user.id)
+            await main.set_data(data['item_need_to_add'], message.from_user.id)
             await state.finish()
             await message.answer('Done')
             await message.answer(main.get_info_for_user(message.from_user.id), parse_mode='html', reply_markup=user_kb.user_kb)

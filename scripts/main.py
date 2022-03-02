@@ -1,4 +1,4 @@
-import requests, json, re
+import requests, re, sqlite3
 
 HEADERS = {
     'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
@@ -6,90 +6,91 @@ HEADERS = {
 }
 
 def save_user_id(user_id):
-    file = open('./DB/users_id.json', 'r')
-    users = json.load(file)
-    file.close()
+    with sqlite3.connect("./DB/ParserBot.db") as con:
+        cur = con.cursor()
 
-    if user_id not in users:
-        users.append(user_id)
+        try:
+            cur.execute(f"""INSERT INTO users (id) VALUES ({user_id}) """)
+        except:
+            print("Такой id уже есть")
 
-    file = open('./DB/users_id.json', 'w')
-    json.dump(users, file)
-    file.close()
-
-
-async def del_item(user_id, number):
-    save_user_id(user_id)
-    file = open('./DB/json_user_product.json', 'r')
-    user_products = json.load(file)
-    file.close()
-
-    if len(user_products[str(user_id)]) > 0 and str(user_id) in user_products.keys():
-        del user_products[str(user_id)][int(number)-1]
-
-    file = open('./DB/json_user_product.json', 'w')
-    json.dump(user_products, file)
-    file.close()
 
 
 
 def get_info_for_user(user_id):
-    save_user_id(user_id)
     result = []
-    user_id = str(user_id)
-    file_products = open('./DB/json_product.json', 'r')
-    file_user_products = open('./DB/json_user_product.json', 'r')
-
-    products = json.load(file_products)
-    user_products = json.load(file_user_products)
-
-    file_products.close()
-    file_user_products.close()
-
-    if user_id not in user_products.keys():
-        return 'Твой список пуст, пес\nИли я просто почистил базу...'
-
     i = 1
-    for item in user_products[user_id]:
-        result.append(': '.join([str(i) + '. ' + products[item][1], '<b>' + products[item][0] + ' BYN'+'</b>' + '\n' + products[item][2]]))
-        i += 1
-
-    return '\n'.join(result)
+    with sqlite3.connect("./DB/ParserBot.db") as con:
+        cur = con.cursor()
 
 
-async def set_json(link, user_id):
-    save_user_id(user_id)
-    user_id = str(user_id)
-    s = requests.Session()
+        for value in cur.execute(f""" SELECT products.name, products.price, products.url 
+                        FROM users
+                        JOIN users_products ON users.id == users_products.user_id
+                        JOIN products ON product_id == products.id
+                        WHERE user_id == {user_id} """):
+            result.append(': '.join([str(i) + '. ' + value[0], '<b>' + str(value[1]) + ' BYN'+'</b>' + '\n' + value[2]]))
+            i += 1
+    del i
+    if result == []:
+        return 'Твой список пуст'
+    else:
+        return '\n'.join(result)
+
+
+async def set_data(link, user_id):
     link_api = f'https://catalog.api.onliner.by/products/' + re.findall(r'/([^/]+$)', link)[0]
-    response = s.get(url=link_api, headers=HEADERS)
-    data = response.json()
-    price = data['prices']['price_min']['amount']
-    name = data['name']
 
-    file = open('./DB/json_product.json', 'r')
-    products_dict = json.load(file)
-    file.close()
 
-    if link_api not in products_dict.keys():
-        products_dict[link_api] = [price, name, link]
+    with sqlite3.connect("./DB/ParserBot.db") as con:
+        cur = con.cursor()
 
-    file = open('./DB/json_product.json', 'w')
-    json.dump(products_dict, file)
-    file.close()
+        fl = 1
+        for url in cur.execute("""SELECT url FROM products"""):
+            if link == url[0]:
+                fl = 0
+                break
 
-    # --------USER---------------------
-    file = open('./DB/json_user_product.json', 'r')
-    user_products = json.load(file)
-    file.close()
 
-    if user_id not in user_products.keys():
-        user_products[user_id] = []
-        user_products[user_id].append(link_api)
-    elif link_api not in user_products[user_id]:
-        user_products[user_id].append(link_api)
+        if fl:
+            s = requests.Session()
+            response = s.get(url=link_api, headers=HEADERS)
+            data = response.json()
+            price = data['prices']['price_min']['amount']
+            name = data['name']
 
-    file = open('./DB/json_user_product.json', 'w')
-    json.dump(user_products, file)
-    file.close()
+            cur.execute(f"""INSERT INTO products (name, price, url, api_url ) 
+            VALUES (?, ?, ?, ?)""", (name, price, link, link_api))
+            con.commit()
+
+
+        product_id = cur.execute(f"""SELECT id FROM products WHERE url == '{link}'""").fetchone()
+        fl2 = 1
+        for value in cur.execute("""SELECT * FROM users_products"""):
+            if (user_id, product_id[0]) == value:
+                fl2 = 0
+                break
+        if fl2:
+            cur.execute("""INSERT INTO users_products VALUES (?, ?)""", (user_id, product_id[0]))
+            con.commit()
+
+
+
+async def del_item(user_id, number):
+    with sqlite3.connect("./DB/ParserBot.db") as con:
+        cur = con.cursor()
+
+        user_list = cur.execute(f""" SELECT products.id
+                            FROM users
+                            JOIN users_products ON users.id == users_products.user_id
+                            JOIN products ON product_id == products.id
+                            WHERE user_id == {user_id} """).fetchall()
+
+        cur.execute(f"""DELETE FROM users_products WHERE product_id == '{user_list[int(number)-1][0]}'""")
+        con.commit()
+
+
+
+
+
 
