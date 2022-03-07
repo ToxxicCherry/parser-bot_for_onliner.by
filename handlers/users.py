@@ -64,9 +64,9 @@ async def finish_del(message: types.Message, state: FSMContext):
                 await message.answer('Ок')
                 await message.answer(main.get_info_for_user(message.from_user.id), parse_mode='html', reply_markup=user_kb.user_kb)
             except:
-                await message.answer('Шутник блять, вводи нормальный номер')
+                await message.answer('Некорректный номер')
         else:
-            await message.answer('Шутник блять, вводи нормальный номер')
+            await message.answer('Некорректный номер')
 
 
 

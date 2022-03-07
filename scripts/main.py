@@ -5,6 +5,16 @@ HEADERS = {
     'user-agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Mobile Safari/537.36'
 }
 
+def get_price(url_api):
+    s = requests.Session()
+    response = s.get(url=url_api, headers=HEADERS)
+    data = response.json()
+    price = data['prices']['price_min']['amount']
+    name = data['name']
+
+    return price, name
+
+
 def save_user_id(user_id):
     with sqlite3.connect("./DB/ParserBot.db") as con:
         cur = con.cursor()
@@ -53,14 +63,10 @@ async def set_data(link, user_id):
 
 
         if fl:
-            s = requests.Session()
-            response = s.get(url=link_api, headers=HEADERS)
-            data = response.json()
-            price = data['prices']['price_min']['amount']
-            name = data['name']
+            price_name = get_price(link_api)
 
             cur.execute(f"""INSERT INTO products (name, price, url, api_url ) 
-            VALUES (?, ?, ?, ?)""", (name, price, link, link_api))
+            VALUES (?, ?, ?, ?)""", (price_name[1], price_name[0], link, link_api))
             con.commit()
 
 

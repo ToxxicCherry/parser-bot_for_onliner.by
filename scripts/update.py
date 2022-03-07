@@ -1,18 +1,7 @@
-import sqlite3
-
 from create_bot import bot
-import asyncio, requests, time
+import asyncio, time, sqlite3
 from keyboards import user_kb
-from scripts.main import HEADERS
-
-
-def get_price(url_api):
-    s = requests.Session()
-    response = s.get(url=url_api, headers=HEADERS)
-    data = response.json()
-    price = data['prices']['price_min']['amount']
-
-    return price
+from scripts.main import get_price
 
 
 
@@ -46,7 +35,7 @@ def update(loop):
                 print(f'Проверяю {item[2]}')
                 try:
 
-                    new_price = get_price(item[1])
+                    new_price = get_price(item[1])[0]
 
                 except:
 
