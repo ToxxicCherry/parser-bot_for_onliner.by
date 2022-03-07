@@ -1,4 +1,5 @@
-This bot already working with heroku.
+This bot can check onliner.by prices and notify you when prices change
+and he already working with heroku.
 You can find him in Telegram @onliner_tracking_bot
 #-------------------------------------------------
 Or: 
